@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	goRuntime "runtime"
 	"strconv"
 	"strings"
 
@@ -47,12 +46,6 @@ func NewWorkerOpt(
 ) (base.WorkerOpt, error) {
 	opts = append(opts, containerd.WithDefaultNamespace(ns))
 
-	if goRuntime.GOOS == "windows" {
-		// TODO(profnandaa): once the upstream PR[1] is merged and
-		// vendored in buildkit, we will remove this block.
-		// [1] https://github.com/containerd/containerd/pull/9412
-		address = strings.TrimPrefix(address, "npipe://")
-	}
 	client, err := containerd.New(address, opts...)
 	if err != nil {
 		return base.WorkerOpt{}, errors.Wrapf(err, "failed to connect client to %q . make sure containerd is running", address)

@@ -2,6 +2,8 @@ package oci
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -188,6 +190,7 @@ func GenerateSpec(ctx context.Context, meta executor.Meta, mounts []executor.Mou
 				releaseAll()
 				return nil, nil, err
 			}
+			fmt.Printf("====> %v, %v, %v, %v\n", m.Dest, mount.Type, mount.Source, mount.Options)
 			s.Mounts = append(s.Mounts, specs.Mount{
 				Destination: m.Dest,
 				Type:        mount.Type,
@@ -212,6 +215,8 @@ func GenerateSpec(ctx context.Context, meta executor.Meta, mounts []executor.Mou
 		}
 	}
 
+	asJs, _ := json.MarshalIndent(s, "", "  ")
+	fmt.Printf(">>> %s\n", string(asJs))
 	return s, releaseAll, nil
 }
 

@@ -215,9 +215,17 @@ func TestIntegration(t *testing.T) {
 }
 
 func testIntegration(t *testing.T, funcs ...func(t *testing.T, sb integration.Sandbox)) {
-	mirroredImages := integration.OfficialImages("busybox:latest", "alpine:latest")
-	mirroredImages["tonistiigi/test:nolayers"] = "docker.io/tonistiigi/test:nolayers"
-	mirroredImages["cpuguy83/buildkit-foreign:latest"] = "docker.io/cpuguy83/buildkit-foreign:latest"
+	// TODO: revert
+	// mirroredImages := integration.OfficialImages("busybox:latest", "alpine:latest")
+	// mirroredImages["tonistiigi/test:nolayers"] = "docker.io/tonistiigi/test:nolayers"
+	// mirroredImages["cpuguy83/buildkit-foreign:latest"] = "docker.io/cpuguy83/buildkit-foreign:latest"
+	mirroredImages := map[string]string{
+		"alpine:latest":  "docker.samfira.com/alpine:latest",
+		"busybox:latest": "registry.k8s.io/e2e-test-images/busybox:1.29-2",
+		//"volume-copy-up:2.2":               "ghcr.io/containerd/volume-copy-up:2.2",
+		"tonistiigi/test:nolayers":         "docker.samfira.com/tonistiigi/test:nolayers",
+		"cpuguy83/buildkit-foreign:latest": "docker.samfira.com/cpuguy83/buildkit-foreign:latest",
+	}
 	mirrors := integration.WithMirroredImages(mirroredImages)
 
 	tests := integration.TestFuncs(funcs...)
@@ -1534,7 +1542,7 @@ func testRelativeWorkDir(t *testing.T, sb integration.Sandbox) {
 }
 
 func testFileOpMkdirMkfile(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	// requiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -1567,7 +1575,7 @@ func testFileOpMkdirMkfile(t *testing.T, sb integration.Sandbox) {
 }
 
 func testFileOpCopyRm(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	// requiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -5021,12 +5029,12 @@ func testZstdRegistryCacheImportExport(t *testing.T, sb integration.Sandbox) {
 }
 
 func testBasicCacheImportExport(t *testing.T, sb integration.Sandbox, cacheOptionsEntryImport, cacheOptionsEntryExport []CacheOptionsEntry) {
-	requiresLinux(t)
+	// requiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
 
-	busybox := llb.Image("busybox:latest")
+	busybox := llb.Image("registry.k8s.io/e2e-test-images/busybox:1.29-2")
 	st := llb.Scratch()
 
 	run := func(cmd string) {
@@ -5034,7 +5042,7 @@ func testBasicCacheImportExport(t *testing.T, sb integration.Sandbox, cacheOptio
 	}
 
 	run(`sh -c "echo -n foobar > const"`)
-	run(`sh -c "cat /dev/urandom | head -c 100 | sha256sum > unique"`)
+	run(`sh -c "echo $RANDOM | sha256sum > unique"`)
 
 	def, err := st.Marshal(sb.Context())
 	require.NoError(t, err)

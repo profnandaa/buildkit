@@ -96,6 +96,7 @@ func (w *containerdExecutor) Run(ctx context.Context, id string, root executor.M
 		id = identity.NewID()
 	}
 
+	bklog.G(ctx).Warn("===>>> here")
 	startedOnce := sync.Once{}
 	done := make(chan error, 1)
 	details := &containerState{

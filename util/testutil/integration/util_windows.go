@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os/exec"
 	"strings"
 	"time"
@@ -16,6 +17,7 @@ func waitSocket(address string, d time.Duration, cmd *exec.Cmd) error {
 
 	for {
 		if cmd != nil && cmd.ProcessState != nil {
+			fmt.Println("=====>", cmd.ProcessState, cmd.ProcessState.ExitCode())
 			return errors.Errorf("process exited: %s", cmd.String())
 		}
 

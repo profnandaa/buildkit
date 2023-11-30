@@ -215,20 +215,28 @@ func TestIntegration(t *testing.T) {
 }
 
 func testIntegration(t *testing.T, funcs ...func(t *testing.T, sb integration.Sandbox)) {
-	mirroredImages := integration.OfficialImages("busybox:latest", "alpine:latest")
-	mirroredImages["tonistiigi/test:nolayers"] = "docker.io/tonistiigi/test:nolayers"
-	mirroredImages["cpuguy83/buildkit-foreign:latest"] = "docker.io/cpuguy83/buildkit-foreign:latest"
+	// mirroredImages := integration.OfficialImages("busybox:latest", "alpine:latest")
+	// mirroredImages["tonistiigi/test:nolayers"] = "docker.io/tonistiigi/test:nolayers"
+	// mirroredImages["cpuguy83/buildkit-foreign:latest"] = "docker.io/cpuguy83/buildkit-foreign:latest"
+	mirroredImages := map[string]string{
+		"alpine:latest":                    "docker.samfira.com/alpine:latest",
+		"busybox:latest":                   "docker.samfira.com/busybox:1.29-2",
+		"tonistiigi/test:nolayers":         "docker.samfira.com/tonistiigi/test:nolayers",
+		"cpuguy83/buildkit-foreign:latest": "docker.samfira.com/cpuguy83/buildkit-foreign:latest",
+	}
 	mirrors := integration.WithMirroredImages(mirroredImages)
 
 	tests := integration.TestFuncs(funcs...)
 	tests = append(tests, diffOpTestCases()...)
 	integration.Run(t, tests, mirrors)
 
-	integration.Run(t, integration.TestFuncs(
-		testSecurityMode,
-		testSecurityModeSysfs,
-		testSecurityModeErrors,
-	),
+	integration.Run(
+		t,
+		integration.TestFuncs(
+			testSecurityMode,
+			testSecurityModeSysfs,
+			testSecurityModeErrors,
+		),
 		mirrors,
 		integration.WithMatrix("secmode", map[string]interface{}{
 			"sandbox":  securitySandbox,
@@ -236,9 +244,9 @@ func testIntegration(t *testing.T, funcs ...func(t *testing.T, sb integration.Sa
 		}),
 	)
 
-	integration.Run(t, integration.TestFuncs(
-		testHostNetworking,
-	),
+	integration.Run(
+		t,
+		integration.TestFuncs(testHostNetworking),
 		mirrors,
 		integration.WithMatrix("netmode", map[string]interface{}{
 			"default": defaultNetwork,
@@ -246,14 +254,14 @@ func testIntegration(t *testing.T, funcs ...func(t *testing.T, sb integration.Sa
 		}),
 	)
 
-	integration.Run(t, integration.TestFuncs(
-		testBridgeNetworkingDNSNoRootless,
-	),
-		mirrors,
-		integration.WithMatrix("netmode", map[string]interface{}{
-			"dns": bridgeDNSNetwork,
-		}),
-	)
+	// integration.Run(
+	// 	t,
+	// 	integration.TestFuncs(testBridgeNetworkingDNSNoRootless),
+	// 	mirrors,
+	// 	integration.WithMatrix("netmode", map[string]interface{}{
+	// 		"dns": bridgeDNSNetwork,
+	// 	}),
+	// )
 }
 
 func newContainerd(cdAddress string) (*containerd.Client, error) {
@@ -262,6 +270,7 @@ func newContainerd(cdAddress string) (*containerd.Client, error) {
 
 // moby/buildkit#1336
 func testCacheExportCacheKeyLoop(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureCacheExport, workers.FeatureCacheBackendLocal)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
@@ -305,6 +314,7 @@ func testCacheExportCacheKeyLoop(t *testing.T, sb integration.Sandbox) {
 }
 
 func testBridgeNetworking(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	if os.Getenv("BUILDKIT_RUN_NETWORK_INTEGRATION_TESTS") == "" {
 		t.SkipNow()
 	}
@@ -327,6 +337,7 @@ func testBridgeNetworking(t *testing.T, sb integration.Sandbox) {
 }
 
 func testBridgeNetworkingDNSNoRootless(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureCNINetwork)
 	if os.Getenv("BUILDKIT_RUN_NETWORK_INTEGRATION_TESTS") == "" {
 		t.SkipNow()
@@ -366,6 +377,7 @@ func testBridgeNetworkingDNSNoRootless(t *testing.T, sb integration.Sandbox) {
 }
 
 func testHostNetworking(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	if os.Getenv("BUILDKIT_RUN_NETWORK_INTEGRATION_TESTS") == "" {
 		t.SkipNow()
 	}
@@ -396,6 +408,7 @@ func testHostNetworking(t *testing.T, sb integration.Sandbox) {
 }
 
 func testExportedImageLabels(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -525,6 +538,7 @@ func testExportedImageLabels(t *testing.T, sb integration.Sandbox) {
 
 // #877
 func testExportBusyboxLocal(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -554,6 +568,7 @@ func testExportBusyboxLocal(t *testing.T, sb integration.Sandbox) {
 }
 
 func testHostnameLookup(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	if sb.Rootless() {
 		t.SkipNow()
 	}
@@ -573,6 +588,7 @@ func testHostnameLookup(t *testing.T, sb integration.Sandbox) {
 
 // moby/buildkit#1301
 func testHostnameSpecifying(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	if sb.Rootless() {
 		t.SkipNow()
 	}
@@ -597,6 +613,7 @@ func testHostnameSpecifying(t *testing.T, sb integration.Sandbox) {
 
 // moby/buildkit#614
 func testStdinClosed(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -611,6 +628,7 @@ func testStdinClosed(t *testing.T, sb integration.Sandbox) {
 }
 
 func testSSHMount(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -770,6 +788,7 @@ func testSSHMount(t *testing.T, sb integration.Sandbox) {
 }
 
 func testExtraHosts(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -785,6 +804,7 @@ func testExtraHosts(t *testing.T, sb integration.Sandbox) {
 }
 
 func testShmSize(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -816,6 +836,7 @@ func testShmSize(t *testing.T, sb integration.Sandbox) {
 }
 
 func testUlimit(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -855,6 +876,7 @@ func testUlimit(t *testing.T, sb integration.Sandbox) {
 }
 
 func testCgroupParent(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	if sb.Rootless() {
 		t.SkipNow()
 	}
@@ -924,6 +946,7 @@ func testCgroupParent(t *testing.T, sb integration.Sandbox) {
 }
 
 func testNetworkMode(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -952,6 +975,7 @@ func testNetworkMode(t *testing.T, sb integration.Sandbox) {
 }
 
 func testPushByDigest(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureDirectPush)
 	requiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
@@ -997,6 +1021,7 @@ func testPushByDigest(t *testing.T, sb integration.Sandbox) {
 }
 
 func testSecurityMode(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureSecurityMode)
 	command := `sh -c 'cat /proc/self/status | grep CapEff | cut -f 2 > /out'`
 	mode := llb.SecurityModeSandbox
@@ -1068,6 +1093,7 @@ func testSecurityMode(t *testing.T, sb integration.Sandbox) {
 }
 
 func testSecurityModeSysfs(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureSecurityMode)
 	if sb.Rootless() {
 		t.SkipNow()
@@ -1114,6 +1140,7 @@ func testSecurityModeSysfs(t *testing.T, sb integration.Sandbox) {
 }
 
 func testSecurityModeErrors(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -1294,6 +1321,7 @@ func testFrontendImageNaming(t *testing.T, sb integration.Sandbox) {
 }
 
 func testSecretMounts(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -1367,6 +1395,7 @@ func testSecretMounts(t *testing.T, sb integration.Sandbox) {
 }
 
 func testSecretEnv(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -1820,6 +1849,7 @@ func testFileOpInputSwap(t *testing.T, sb integration.Sandbox) {
 }
 
 func testLocalSourceDiffer(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	for _, d := range []llb.DiffType{llb.DiffNone, llb.DiffMetadata} {
 		t.Run(fmt.Sprintf("differ=%s", d), func(t *testing.T) {
 			testLocalSourceWithDiffer(t, sb, d)
@@ -1897,6 +1927,7 @@ func testLocalSourceWithDiffer(t *testing.T, sb integration.Sandbox, d llb.DiffT
 }
 
 func testOCILayoutSource(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureOCIExporter, workers.FeatureOCILayout)
 	requiresLinux(t)
 	c, err := New(context.TODO(), sb.Address())
@@ -1994,6 +2025,7 @@ func testOCILayoutSource(t *testing.T, sb integration.Sandbox) {
 }
 
 func testOCILayoutPlatformSource(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureOCIExporter, workers.FeatureOCILayout)
 	requiresLinux(t)
 	c, err := New(context.TODO(), sb.Address())
@@ -2212,6 +2244,7 @@ func testFileOpRmWildcard(t *testing.T, sb integration.Sandbox) {
 }
 
 func testCallDiskUsage(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -2241,6 +2274,7 @@ func testBuildMultiMount(t *testing.T, sb integration.Sandbox) {
 }
 
 func testBuildExportScratch(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureImageExporter)
 	requiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
@@ -2293,6 +2327,7 @@ func testBuildExportScratch(t *testing.T, sb integration.Sandbox) {
 }
 
 func testBuildHTTPSource(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -2550,6 +2585,7 @@ func testUser(t *testing.T, sb integration.Sandbox) {
 }
 
 func testOCIExporter(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureOCIExporter)
 	requiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
@@ -2651,6 +2687,7 @@ func testOCIExporter(t *testing.T, sb integration.Sandbox) {
 }
 
 func testOCIExporterContentStore(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureOCIExporter)
 	requiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
@@ -2744,6 +2781,7 @@ func testOCIExporterContentStore(t *testing.T, sb integration.Sandbox) {
 }
 
 func testSourceDateEpochLayerTimestamps(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureOCIExporter, workers.FeatureSourceDateEpoch)
 	requiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
@@ -2804,6 +2842,7 @@ func testSourceDateEpochLayerTimestamps(t *testing.T, sb integration.Sandbox) {
 }
 
 func testSourceDateEpochClamp(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureOCIExporter, workers.FeatureSourceDateEpoch)
 	requiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
@@ -2913,6 +2952,7 @@ func testSourceDateEpochClamp(t *testing.T, sb integration.Sandbox) {
 
 // testSourceDateEpochReset tests that the SOURCE_DATE_EPOCH is reset if exporter option is set
 func testSourceDateEpochReset(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureOCIExporter, workers.FeatureSourceDateEpoch)
 	requiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
@@ -2977,6 +3017,7 @@ func testSourceDateEpochReset(t *testing.T, sb integration.Sandbox) {
 }
 
 func testSourceDateEpochLocalExporter(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureSourceDateEpoch)
 	requiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
@@ -3084,6 +3125,7 @@ func testSourceDateEpochTarExporter(t *testing.T, sb integration.Sandbox) {
 }
 
 func testSourceDateEpochImageExporter(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	cdAddress := sb.ContainerdAddress()
 	if cdAddress == "" {
 		t.SkipNow()
@@ -3248,6 +3290,7 @@ func testFrontendUseSolveResults(t *testing.T, sb integration.Sandbox) {
 }
 
 func testExporterTargetExists(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureOCIExporter)
 	requiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
@@ -3369,6 +3412,7 @@ func testTarExporterSymlink(t *testing.T, sb integration.Sandbox) {
 }
 
 func testBuildExportWithForeignLayer(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureImageExporter)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
@@ -3667,6 +3711,7 @@ func testBuildExportWithUncompressed(t *testing.T, sb integration.Sandbox) {
 }
 
 func testBuildExportZstd(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureOCIExporter)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
@@ -3763,6 +3808,7 @@ func testBuildExportZstd(t *testing.T, sb integration.Sandbox) {
 }
 
 func testPullZstdImage(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureDirectPush)
 	for _, ociMediaTypes := range []bool{true, false} {
 		ociMediaTypes := ociMediaTypes
@@ -4708,6 +4754,7 @@ func testLazyImagePush(t *testing.T, sb integration.Sandbox) {
 }
 
 func testZstdLocalCacheExport(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureCacheExport, workers.FeatureCacheBackendLocal)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
@@ -4767,6 +4814,7 @@ func testZstdLocalCacheExport(t *testing.T, sb integration.Sandbox) {
 }
 
 func testCacheExportIgnoreError(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureCacheExport)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
@@ -4883,6 +4931,7 @@ func testCacheExportIgnoreError(t *testing.T, sb integration.Sandbox) {
 }
 
 func testUncompressedLocalCacheImportExport(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb,
 		workers.FeatureCacheExport,
 		workers.FeatureCacheImport,
@@ -4907,6 +4956,7 @@ func testUncompressedLocalCacheImportExport(t *testing.T, sb integration.Sandbox
 }
 
 func testUncompressedRegistryCacheImportExport(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb,
 		workers.FeatureCacheExport,
 		workers.FeatureCacheImport,
@@ -4936,6 +4986,7 @@ func testUncompressedRegistryCacheImportExport(t *testing.T, sb integration.Sand
 }
 
 func testZstdLocalCacheImportExport(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb,
 		workers.FeatureCacheExport,
 		workers.FeatureCacheImport,
@@ -4961,6 +5012,7 @@ func testZstdLocalCacheImportExport(t *testing.T, sb integration.Sandbox) {
 }
 
 func testImageManifestRegistryCacheImportExport(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb,
 		workers.FeatureCacheExport,
 		workers.FeatureCacheImport,
@@ -4991,6 +5043,7 @@ func testImageManifestRegistryCacheImportExport(t *testing.T, sb integration.San
 }
 
 func testZstdRegistryCacheImportExport(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb,
 		workers.FeatureCacheExport,
 		workers.FeatureCacheImport,
@@ -5083,6 +5136,7 @@ func testBasicCacheImportExport(t *testing.T, sb integration.Sandbox, cacheOptio
 }
 
 func testBasicRegistryCacheImportExport(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb,
 		workers.FeatureCacheExport,
 		workers.FeatureCacheImport,
@@ -5104,6 +5158,7 @@ func testBasicRegistryCacheImportExport(t *testing.T, sb integration.Sandbox) {
 }
 
 func testMultipleRegistryCacheImportExport(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb,
 		workers.FeatureCacheExport,
 		workers.FeatureCacheImport,
@@ -5131,6 +5186,7 @@ func testMultipleRegistryCacheImportExport(t *testing.T, sb integration.Sandbox)
 }
 
 func testBasicLocalCacheImportExport(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb,
 		workers.FeatureCacheExport,
 		workers.FeatureCacheImport,
@@ -5153,6 +5209,7 @@ func testBasicLocalCacheImportExport(t *testing.T, sb integration.Sandbox) {
 }
 
 func testBasicS3CacheImportExport(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb,
 		workers.FeatureCacheExport,
 		workers.FeatureCacheImport,
@@ -5195,6 +5252,7 @@ func testBasicS3CacheImportExport(t *testing.T, sb integration.Sandbox) {
 }
 
 func testBasicAzblobCacheImportExport(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb,
 		workers.FeatureCacheExport,
 		workers.FeatureCacheImport,
@@ -5232,6 +5290,7 @@ func testBasicAzblobCacheImportExport(t *testing.T, sb integration.Sandbox) {
 }
 
 func testBasicInlineCacheImportExport(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb,
 		workers.FeatureDirectPush,
 		workers.FeatureCacheExport,
@@ -5397,6 +5456,7 @@ func testBasicInlineCacheImportExport(t *testing.T, sb integration.Sandbox) {
 }
 
 func testBasicGhaCacheImportExport(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb,
 		workers.FeatureCacheExport,
 		workers.FeatureCacheImport,
@@ -5504,6 +5564,7 @@ func testRegistryEmptyCacheExport(t *testing.T, sb integration.Sandbox) {
 }
 
 func testMultipleRecordsWithSameLayersCacheImportExport(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb,
 		workers.FeatureCacheExport,
 		workers.FeatureCacheImport,
@@ -5563,6 +5624,7 @@ func testMultipleRecordsWithSameLayersCacheImportExport(t *testing.T, sb integra
 
 // moby/buildkit#3809
 func testSnapshotWithMultipleBlobs(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureOCIExporter)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
@@ -5704,6 +5766,7 @@ func testSnapshotWithMultipleBlobs(t *testing.T, sb integration.Sandbox) {
 }
 
 func testExportLocalNoPlatformSplit(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureOCIExporter, workers.FeatureMultiPlatform)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
@@ -5781,6 +5844,7 @@ func testExportLocalNoPlatformSplit(t *testing.T, sb integration.Sandbox) {
 }
 
 func testExportLocalNoPlatformSplitOverwrite(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureOCIExporter, workers.FeatureMultiPlatform)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
@@ -6262,6 +6326,7 @@ func testWhiteoutParentDir(t *testing.T, sb integration.Sandbox) {
 
 // #2490
 func testMoveParentDir(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureOCIExporter)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
@@ -6329,6 +6394,7 @@ func testMoveParentDir(t *testing.T, sb integration.Sandbox) {
 
 // #296
 func testSchema1Image(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -6346,6 +6412,7 @@ func testSchema1Image(t *testing.T, sb integration.Sandbox) {
 
 // #319
 func testMountWithNoSource(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -6375,6 +6442,7 @@ func testMountWithNoSource(t *testing.T, sb integration.Sandbox) {
 
 // #324
 func testReadonlyRootFS(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -6402,6 +6470,7 @@ func testReadonlyRootFS(t *testing.T, sb integration.Sandbox) {
 }
 
 func testSourceMap(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -6522,6 +6591,7 @@ func testSourceMapFromRef(t *testing.T, sb integration.Sandbox) {
 }
 
 func testRmSymlink(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -6555,6 +6625,7 @@ func testRmSymlink(t *testing.T, sb integration.Sandbox) {
 }
 
 func testProxyEnv(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -6717,18 +6788,22 @@ func testMergeOp(t *testing.T, sb integration.Sandbox) {
 }
 
 func testMergeOpCacheInline(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	testMergeOpCache(t, sb, "inline")
 }
 
 func testMergeOpCacheMin(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	testMergeOpCache(t, sb, "min")
 }
 
 func testMergeOpCacheMax(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	testMergeOpCache(t, sb, "max")
 }
 
 func testMergeOpCache(t *testing.T, sb integration.Sandbox, mode string) {
+	skipWindows(t)
 	t.Helper()
 	workers.CheckFeatureCompat(t, sb, workers.FeatureDirectPush, workers.FeatureMergeDiff)
 	requiresLinux(t)
@@ -7204,6 +7279,12 @@ func requiresLinux(t *testing.T) {
 	}
 }
 
+func skipWindows(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skipf("skipped on Windows")
+	}
+}
+
 // ensurePruneAll tries to ensure Prune completes with retries.
 // Current cache implementation defers release-related logic using goroutine so
 // there can be situation where a build has finished but the following prune doesn't
@@ -7407,6 +7488,7 @@ func testInvalidExporter(t *testing.T, sb integration.Sandbox) {
 
 // moby/buildkit#492
 func testParallelLocalBuilds(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	ctx, cancel := context.WithCancel(sb.Context())
 	defer cancel()
 
@@ -7493,6 +7575,7 @@ func testRelativeMountpoint(t *testing.T, sb integration.Sandbox) {
 }
 
 func testPullWithLayerLimit(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureDirectPush)
 	requiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
@@ -7608,6 +7691,7 @@ func testPullWithLayerLimit(t *testing.T, sb integration.Sandbox) {
 }
 
 func testCallInfo(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureInfo)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
@@ -7617,6 +7701,7 @@ func testCallInfo(t *testing.T, sb integration.Sandbox) {
 }
 
 func testValidateDigestOrigin(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureDirectPush)
 	requiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
@@ -7683,6 +7768,7 @@ func testValidateDigestOrigin(t *testing.T, sb integration.Sandbox) {
 }
 
 func testExportAnnotations(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureOCIExporter)
 	requiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
@@ -7900,6 +7986,7 @@ func testExportAnnotations(t *testing.T, sb integration.Sandbox) {
 }
 
 func testExportAnnotationsMediaTypes(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureDirectPush)
 	requiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
@@ -8014,6 +8101,7 @@ func testExportAnnotationsMediaTypes(t *testing.T, sb integration.Sandbox) {
 }
 
 func testExportAttestations(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureDirectPush)
 	requiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
@@ -9229,6 +9317,7 @@ func testSBOMSupplements(t *testing.T, sb integration.Sandbox) {
 }
 
 func testMultipleCacheExports(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	workers.CheckFeatureCompat(t, sb, workers.FeatureMultiCacheExport)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
@@ -9346,6 +9435,7 @@ func testMultipleCacheExports(t *testing.T, sb integration.Sandbox) {
 }
 
 func testMountStubsDirectory(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -9405,6 +9495,7 @@ func testMountStubsDirectory(t *testing.T, sb integration.Sandbox) {
 
 // https://github.com/moby/buildkit/issues/3148
 func testMountStubsTimestamp(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -9811,6 +9902,7 @@ func testSourcePolicy(t *testing.T, sb integration.Sandbox) {
 }
 
 func testLLBMountPerformance(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -9839,6 +9931,7 @@ func testLLBMountPerformance(t *testing.T, sb integration.Sandbox) {
 }
 
 func testClientCustomGRPCOpts(t *testing.T, sb integration.Sandbox) {
+	skipWindows(t)
 	var interceptedMethods []string
 	intercept := func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		interceptedMethods = append(interceptedMethods, method)

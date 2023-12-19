@@ -32,6 +32,7 @@ import (
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/snapshots"
 	"github.com/containerd/containerd/snapshots/native"
+	"github.com/containerd/containerd/snapshots/windows"
 	"github.com/containerd/continuity/fs/fstest"
 	"github.com/containerd/stargz-snapshotter/estargz"
 	"github.com/klauspost/compress/zstd"
@@ -436,16 +437,17 @@ func TestMergeBlobchainID(t *testing.T) {
 }
 
 func TestSnapshotExtract(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Depends on unimplemented containerd bind-mount support on Windows")
-	}
+	// if runtime.GOOS == "windows" {
+	// 	t.Skip("Depends on unimplemented containerd bind-mount support on Windows")
+	// }
 
 	t.Parallel()
 	ctx := namespaces.WithNamespace(context.Background(), "buildkit-test")
 
 	tmpdir := t.TempDir()
 
-	snapshotter, err := native.NewSnapshotter(filepath.Join(tmpdir, "snapshots"))
+	// snapshotter, err := native.NewSnapshotter(filepath.Join(tmpdir, "snapshots"))
+	snapshotter, err := windows.NewSnapshotter(filepath.Join(tmpdir, "snapshots"))
 	require.NoError(t, err)
 
 	co, cleanup, err := newCacheManager(ctx, t, cmOpt{

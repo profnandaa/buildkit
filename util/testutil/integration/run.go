@@ -270,23 +270,7 @@ func copyImagesLocal(t *testing.T, host string, images map[string]string) error 
 }
 
 func OfficialImages(names ...string) map[string]string {
-	ns := runtime.GOARCH
-	if ns == "arm64" {
-		ns = "arm64v8"
-	} else if ns != "amd64" {
-		ns = "library"
-	}
-	m := map[string]string{}
-	for _, name := range names {
-		ref := "docker.io/" + ns + "/" + name
-		if pns, ok := pins[name]; ok {
-			if dgst, ok := pns[ns]; ok {
-				ref += "@" + dgst
-			}
-		}
-		m["library/"+name] = ref
-	}
-	return m
+	return officialImages(names...)
 }
 
 func withMirrorConfig(mirror string) ConfigUpdater {

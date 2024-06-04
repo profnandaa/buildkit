@@ -16,6 +16,10 @@ import (
 func WriteTar(ctx context.Context, fs FS, w io.Writer) error {
 	tw := tar.NewWriter(w)
 	err := fs.Walk(ctx, "/", func(path string, entry os.DirEntry, err error) error {
+		// skip metadata files on Windows, no check cost on Unix
+		if isMetadataFile(path) {
+			return filepath.SkipDir
+		}
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
 			return err
 		}

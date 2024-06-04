@@ -149,6 +149,10 @@ func (s *sender) sendFile(h *sendHandle) error {
 func (s *sender) walk(ctx context.Context) error {
 	var i uint32 = 0
 	err := s.fs.Walk(ctx, "/", func(path string, entry os.DirEntry, err error) error {
+		// skip metadata files on Windows, no check cost on Unix
+		if isMetadataFile(path) {
+			return filepath.SkipDir
+		}
 		if err != nil {
 			return err
 		}

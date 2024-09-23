@@ -154,6 +154,10 @@ Now that everything is setup, let's build a [simple _hello world_ image](https:/
     This message shows that your installation appears to be working correctly.
     "@
     ```
+
+    > **NOTE:** Writing to a file directly under `C:\` needs extra permissions, hence use of `ContainerAdministrator`.
+    > `ContainerUser` is the default user for `nanoserver` images. See more details at [#4731](https://github.com/moby/buildkit/issues/4731).
+
 1. Build and push to your registry (or set to `push=false`). For Docker Hub, make sure you've done `docker login`. See more details on registry configuration [here](../README.md#imageregistry)
 
     ```powershell

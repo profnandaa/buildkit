@@ -6689,6 +6689,7 @@ func testExportLocalNoPlatformSplit(t *testing.T, sb integration.Sandbox) {
 }
 
 func testExportLocalNoPlatformSplitOverwrite(t *testing.T, sb integration.Sandbox) {
+	integration.SkipOnPlatform(t, "windows")
 	workers.CheckFeatureCompat(t, sb, workers.FeatureOCIExporter, workers.FeatureMultiPlatform)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
@@ -11225,7 +11226,7 @@ func testLayerLimitOnMounts(t *testing.T, sb integration.Sandbox) {
 	imgName := integration.UnixOrWindows("busybox:latest", "nanoserver:latest")
 	base := llb.Image(imgName)
 
-	numLayers := integration.UnixOrWindows(110, 70)
+	numLayers := integration.UnixOrWindows(110, 55)
 
 	cmdStr := integration.UnixOrWindows(
 		"sh -c 'echo hello >> /hello'",

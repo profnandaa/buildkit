@@ -1272,7 +1272,14 @@ func dispatchRun(d *dispatchState, c *instructions.RunCommand, proxy *llb.ProxyE
 	if c.PrependShell {
 		// Don't pass the linter function because we do not report a warning for
 		// shell usage on run commands.
-		args = withShell(d.image, args)
+		if d.image.OS == "windows" {
+			// This is a non JSON RUN command. On Windows, the entire RUN line is set
+			// on the CommandLine as one string.
+			// An imperative JSON will be set as Args just like in Linux.
+			args = []string{strings.Join(withShell(d.image, args), " ")}
+		} else {
+			args = withShell(d.image, args)
+		}
 	}
 
 	opt = append(opt, llb.Args(args), dfCmd(c), location(dopt.sourceMap, c.Location()))
@@ -1708,10 +1715,17 @@ func dispatchCmd(d *dispatchState, c *instructions.CmdCommand, lint *linter.Lint
 			msg := linter.RuleJSONArgsRecommended.Format(c.Name())
 			lint.Run(&linter.RuleJSONArgsRecommended, c.Location(), msg)
 		}
-		args = withShell(d.image, args)
+		if d.image.OS == "windows" {
+			// Create a single element array with the entire command (shell included).
+			// We also set the ArgsEscaped field. This will prompt the shim to treat the Cmd
+			// the same way the CommandLine field is treated.
+			args = []string{strings.Join(withShell(d.image, args), " ")}
+			d.image.Config.ArgsEscaped = true //nolint:staticcheck // ignore SA1019: field is deprecated in OCI Image spec, but used for backward-compatibility with Docker image spec.
+		} else {
+			args = withShell(d.image, args)
+		}
 	}
 	d.image.Config.Cmd = args
-	d.image.Config.ArgsEscaped = true //nolint:staticcheck // ignore SA1019: field is deprecated in OCI Image spec, but used for backward-compatibility with Docker image spec.
 	return commitToHistory(&d.image, fmt.Sprintf("CMD %q", args), false, nil, d.epoch)
 }
 
@@ -1724,7 +1738,12 @@ func dispatchEntrypoint(d *dispatchState, c *instructions.EntrypointCommand, lin
 			msg := linter.RuleJSONArgsRecommended.Format(c.Name())
 			lint.Run(&linter.RuleJSONArgsRecommended, c.Location(), msg)
 		}
-		args = withShell(d.image, args)
+		if d.image.OS == "windows" {
+			args = []string{strings.Join(withShell(d.image, args), " ")}
+			d.image.Config.ArgsEscaped = true //nolint:staticcheck // ignore SA1019: field is deprecated in OCI Image spec, but used for backward-compatibility with Docker image spec.
+		} else {
+			args = withShell(d.image, args)
+		}
 	}
 	d.image.Config.Entrypoint = args
 	if !d.cmd.IsSet {

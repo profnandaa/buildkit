@@ -3,7 +3,6 @@ package containerdexecutor
 import (
 	"context"
 	"os"
-	"strings"
 
 	ctd "github.com/containerd/containerd/v2/client"
 	containerdoci "github.com/containerd/containerd/v2/pkg/oci"
@@ -102,5 +101,9 @@ func (d *containerState) getTaskOpts() ([]ctd.NewTaskOpts, error) {
 }
 
 func setArgs(spec *specs.Process, args []string) {
-	spec.CommandLine = strings.Join(args, " ")
+	if len(args) == 1 {
+		spec.CommandLine = args[0]
+	} else {
+		spec.Args = args
+	}
 }

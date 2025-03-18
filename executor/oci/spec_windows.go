@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/containerd/containerd/v2/core/containers"
 	"github.com/containerd/containerd/v2/core/mount"
@@ -25,10 +24,16 @@ const (
 )
 
 func withProcessArgs(args ...string) oci.SpecOpts {
-	cmdLine := strings.Join(args, " ")
-	// This will set Args to nil and properly set the CommandLine option
-	// in the spec. On Windows we need to use CommandLine instead of Args.
-	return oci.WithProcessCommandLine(cmdLine)
+	// On Windows, when we use an imperative JSON as a RUN statement
+	// the args are sent as Args to the shim. When a non-imperative form
+	// is used, the SHELL is prepended to the command and a single element
+	// array is created in llb with the joined command which includes the
+	// shell and the entire contents of the RUN statement. This will be set
+	// on the CommandLine struct field and sent to the shim.
+	if len(args) == 1 {
+		return oci.WithProcessCommandLine(args[0])
+	}
+	return oci.WithProcessArgs(args...)
 }
 
 func withGetUserInfoMount() oci.SpecOpts {

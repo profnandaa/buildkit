@@ -230,3 +230,15 @@ RUN echo bar
 	assert.Equal(t, []digest.Digest{"sha256:2e112031b4b923a873c8b3d685d48037e4d5ccd967b658743d93a6e56c3064b9"}, baseImg.RootFS.DiffIDs)
 	assert.Equal(t, "2024-01-17 21:49:12 +0000 UTC", baseImg.Created.String())
 }
+
+func TestCmdArgs(t *testing.T) {
+	df := `
+FROM mcr.microsoft.com/windows/nanoserver:ltsc2022
+
+CMD "C:\\foo bar\\args.exe" "foo bar" "baz buzz"
+`
+	st, img, _, _, err := Dockerfile2LLB(appcontext.Context(), []byte(df), ConvertOpt{})
+	require.NoError(t, err)
+	assert.Equal(t, len(img.Config.Cmd), 1)
+	t.Logf("%v\n", st)
+}

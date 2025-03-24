@@ -132,7 +132,7 @@ func (c *Containerd) New(ctx context.Context, cfg *integration.BackendConfig) (b
 		}
 	}
 
-	deferF.Append(func() error { return os.RemoveAll(tmpdir) })
+	deferF.Append(func() error { return forceRemoveAll(tmpdir) })
 
 	address := getContainerdSock(tmpdir)
 	config := fmt.Sprintf(`version = 2

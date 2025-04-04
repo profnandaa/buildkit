@@ -12,10 +12,9 @@ import (
 // ':' character .
 const DefaultPathEnvUnix = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-// DefaultPathEnvWindows is windows style list of directories to search for
-// executables. Each directory is separated from the next by a colon
-// ';' character .
-const DefaultPathEnvWindows = "c:\\Windows\\System32;c:\\Windows;C:\\Windows\\System32\\WindowsPowerShell\\v1.0"
+// DefaultPathEnvWindows is left empty to be loaded from the Windows registry hive
+// during container run. See discussions at https://github.com/moby/buildkit/issues/5445
+const DefaultPathEnvWindows = ""
 
 func DefaultPathEnv(os string) string {
 	if os == "windows" {

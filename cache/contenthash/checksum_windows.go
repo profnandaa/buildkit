@@ -1,9 +1,11 @@
 package contenthash
 
 import (
+	"context"
 	"path/filepath"
 
 	"github.com/Microsoft/go-winio"
+	"github.com/moby/buildkit/util/bklog"
 )
 
 var privileges = []string{winio.SeBackupPrivilege}
@@ -26,4 +28,5 @@ func enableProcessPrivileges() {
 // once the group of functions that needed it is complete.
 func disableProcessPrivileges() {
 	_ = winio.DisableProcessPrivileges(privileges)
+	bklog.G(context.TODO()).Info("===> Privilege disabled!!")
 }

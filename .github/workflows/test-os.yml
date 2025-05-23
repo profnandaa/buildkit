@@ -80,6 +80,7 @@ jobs:
     env:
       TESTFLAGS: "-v --timeout=60m"
       GOTESTSUM_FORMAT: "standard-verbose"
+      BUILDKIT_REGISTRY_MIRROR_DIR: ${{ github.workspace }}\mirror
     strategy:
       fail-fast: false
       matrix:

@@ -2,6 +2,13 @@
 
 package local
 
-func runWithPrivileges(fn func() error) error {
-	return fn()
+import (
+	"context"
+	gofs "io/fs"
+
+	"github.com/tonistiigi/fsutil"
+)
+
+func fsWalk(fs fsutil.FS, ctx context.Context, s string, walkFn gofs.WalkDirFunc) error {
+	return fs.Walk(ctx, s, walkFn)
 }

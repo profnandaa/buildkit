@@ -1,7 +1,17 @@
 package local
 
-import "github.com/Microsoft/go-winio"
+import (
+	"context"
+	gofs "io/fs"
 
-func runWithPrivileges(fn func() error) error {
-	return winio.RunWithPrivileges([]string{winio.SeBackupPrivilege}, fn)
+	"github.com/Microsoft/go-winio"
+	"github.com/tonistiigi/fsutil"
+)
+
+func fsWalk(fs fsutil.FS, ctx context.Context, s string, walkFn gofs.WalkDirFunc) error {
+	// Windows has some special files that require
+	// SeBackupPrivilege to be accessed. Ref #4994
+	return winio.RunWithPrivilege(winio.SeBackupPrivilege, func() error {
+		return fs.Walk(ctx, s, walkFn)
+	})
 }

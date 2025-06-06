@@ -3,6 +3,7 @@ package local
 import (
 	"context"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -150,7 +151,7 @@ func (e *localExporterInstance) Export(ctx context.Context, inp *exporter.Source
 				lbl += " " + k
 				st := &fstypes.Stat{
 					Mode: uint32(os.ModeDir | 0755),
-					Path: strings.ReplaceAll(k, "/", "_"),
+					Path: strings.ReplaceAll(normalizePlatform(k), "/", "_"),
 				}
 				if e.opts.Epoch != nil {
 					st.ModTime = e.opts.Epoch.UnixNano()
@@ -211,4 +212,12 @@ func NewProgressHandler(ctx context.Context, id string) func(int, bool) {
 			}
 		}
 	}
+}
+
+// normalizePlatform removes the (version) part from the
+// platform string.
+// See more details at https://github.com/containerd/platforms/pull/6
+func normalizePlatform(platform string) string {
+	re := regexp.MustCompile(`\([^)]*\)`)
+	return re.ReplaceAllString(platform, "")
 }

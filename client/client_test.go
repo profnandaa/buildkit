@@ -1639,7 +1639,7 @@ func testRelativeWorkDir(t *testing.T, sb integration.Sandbox) {
 
 	imgName := integration.UnixOrWindows(
 		"docker.io/library/busybox:latest",
-		"mcr.microsoft.com/windows/nanoserver:ltsc2022",
+		"nanoserver:latest",
 	)
 	cmdStr := integration.UnixOrWindows(
 		`sh -c "pwd > /out/pwd"`,
@@ -1685,7 +1685,7 @@ func testSolverOptLocalDirsStillWorks(t *testing.T, sb integration.Sandbox) {
 
 	imgName := integration.UnixOrWindows(
 		"docker.io/library/busybox:latest",
-		"mcr.microsoft.com/windows/nanoserver:ltsc2022",
+		"nanoserver:latest",
 	)
 	cmdStr := integration.UnixOrWindows(
 		`sh -c "/bin/rev < input.txt > /out/output.txt"`,
@@ -7345,7 +7345,7 @@ func testCopyFromEmptyImage(t *testing.T, sb integration.Sandbox) {
 
 		imgName := integration.UnixOrWindows(
 			"busybox:latest",
-			"mcr.microsoft.com/windows/nanoserver:ltsc2022",
+			"nanoserver:latest",
 		)
 		busybox := llb.Image(imgName)
 
